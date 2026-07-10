@@ -1,0 +1,22 @@
+# Scrapes all three services. Targets are docker-compose service names; the k8s
+# setup uses the same job names with in-cluster DNS (see infra/k8s).
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # C++ matching engine — prometheus-cpp exposer.
+  - job_name: matching-engine
+    static_configs:
+      - targets: ["matching-engine:9101"]
+
+  # Java API — Micrometer via Spring Boot Actuator.
+  - job_name: api-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["api-service:8080"]
+
+  # Go gateway — prometheus/client_golang.
+  - job_name: gateway
+    static_configs:
+      - targets: ["gateway:8090"]

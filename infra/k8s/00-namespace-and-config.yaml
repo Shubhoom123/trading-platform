@@ -1,0 +1,38 @@
+# Shared namespace, non-secret config, and secrets for the whole platform.
+# Every service reads its wiring from these via envFrom, so there is one place
+# to change broker addresses, topic names, and service URLs.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trading
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: trading
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "redpanda:9092"
+  KAFKA_ORDERS_TOPIC: "orders"
+  KAFKA_FILLS_TOPIC: "fills"
+  ENGINE_GRPC_TARGET: "matching-engine:50051"
+  API_BASE_URL: "http://api-service:8080"
+  REDIS_ADDR: "redis:6379"
+  DB_URL: "jdbc:postgresql://postgres:5432/trading"
+  DB_USER: "trading"
+  POSTGRES_DB: "trading"
+  POSTGRES_USER: "trading"
+---
+# Demo secret. In a real cluster this comes from a sealed-secret / external
+# secrets manager, never committed. JWT_SECRET must be >= 32 bytes and match
+# across the API (issuer) and gateway (verifier).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-secrets
+  namespace: trading
+type: Opaque
+stringData:
+  JWT_SECRET: "change-me-in-cluster-0123456789abcdef0123456789"
+  POSTGRES_PASSWORD: "trading"
+  DB_PASSWORD: "trading"

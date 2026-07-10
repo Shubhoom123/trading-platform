@@ -1,0 +1,93 @@
+// Shared source of truth for order/fill/book messages.
+// C++ (matching engine) and Java (API service) both generate stubs from this
+// file — never duplicate these definitions per service.
+
+syntax = "proto3";
+
+package trading.v1;
+
+option java_multiple_files = true;
+option java_package = "com.tradingplatform.proto.v1";
+
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  SIDE_BUY = 1;
+  SIDE_SELL = 2;
+}
+
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_LIMIT = 1;
+  ORDER_TYPE_MARKET = 2;
+}
+
+message Order {
+  uint64 id = 1;
+  string symbol = 2;
+  Side side = 3;
+  OrderType type = 4;
+  int64 price_ticks = 5;   // integer ticks; API layer owns decimal conversion
+  uint64 quantity = 6;
+}
+
+message Fill {
+  uint64 maker_order_id = 1;
+  uint64 taker_order_id = 2;
+  string symbol = 3;
+  int64 price_ticks = 4;
+  uint64 quantity = 5;
+  uint64 sequence = 6;
+}
+
+message SubmitOrderRequest {
+  Order order = 1;
+}
+
+message SubmitOrderResponse {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ACCEPTED = 1;
+    STATUS_REJECTED_BAD_ORDER = 2;
+    STATUS_REJECTED_DUPLICATE = 3;
+  }
+  Status status = 1;
+  repeated Fill fills = 2;
+  uint64 remaining_quantity = 3;
+  bool resting = 4;
+}
+
+message CancelOrderRequest {
+  uint64 order_id = 1;
+  string symbol = 2;
+}
+
+message CancelOrderResponse {
+  bool cancelled = 1;
+}
+
+message BookLevel {
+  int64 price_ticks = 1;
+  uint64 quantity = 2;
+}
+
+message BookSnapshot {
+  string symbol = 1;
+  repeated BookLevel bids = 2; // best first
+  repeated BookLevel asks = 3; // best first
+}
+
+message GetBookSnapshotRequest {
+  string symbol = 1;
+  uint32 depth = 2; // 0 = full book
+}
+
+message StreamFillsRequest {
+  string symbol = 1;
+}
+
+service MatchingEngine {
+  rpc SubmitOrder(SubmitOrderRequest) returns (SubmitOrderResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  rpc GetBookSnapshot(GetBookSnapshotRequest) returns (BookSnapshot);
+  rpc StreamFills(StreamFillsRequest) returns (stream Fill);
+}

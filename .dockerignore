@@ -1,0 +1,9 @@
+# Keep build contexts small and reproducible.
+**/build/
+**/target/
+**/bin/
+gateway-go/internal/pb/*.pb.go
+.git/
+.github/
+**/.DS_Store
+.env

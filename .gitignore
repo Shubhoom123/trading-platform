@@ -1,0 +1,30 @@
+# Secrets — never commit; see .env.example
+.env
+*.pem
+*.key
+
+# C++
+matching-engine-cpp/build/
+# ad-hoc binaries from the quick g++ commands in the README
+matching-engine-cpp/check
+matching-engine-cpp/bench
+*.o
+
+# Java
+api-service-java/target/
+api-service-java/build/
+*.class
+
+# Go
+gateway-go/bin/
+# generated protobuf/gRPC stubs — produced by `make proto`, rebuilt in CI
+gateway-go/internal/pb/*.pb.go
+
+# Python (e2e helper)
+__pycache__/
+*.pyc
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

@@ -83,19 +83,29 @@ func toCacheSnapshot(snap *pb.BookSnapshot) cache.BookSnapshot {
 	return out
 }
 
-// proxyToAPI forwards an authenticated GET to the Java API, passing the caller's
-// Authorization header through. The Java service remains the owner of account
-// and order data; the gateway just offers a single front door.
-func (s *Server) proxyToAPI(path string) gin.HandlerFunc {
+// proxyToAPI forwards a request to the Java API, passing the caller's
+// Authorization header and request body through and streaming the response
+// back. The Java service stays the owner of auth/account/order data; the
+// gateway is the single front door clients talk to.
+func (s *Server) proxyToAPI(method, path string) gin.HandlerFunc {
 	client := &http.Client{Timeout: 5 * time.Second}
 	return func(c *gin.Context) {
+		var body io.Reader
+		if c.Request.Body != nil {
+			body = c.Request.Body
+		}
 		req, err := http.NewRequestWithContext(c.Request.Context(),
-			http.MethodGet, s.cfg.APIBaseURL+path, nil)
+			method, s.cfg.APIBaseURL+path, body)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "proxy build failed"})
 			return
 		}
-		req.Header.Set("Authorization", c.GetHeader("Authorization"))
+		if auth := c.GetHeader("Authorization"); auth != "" {
+			req.Header.Set("Authorization", auth)
+		}
+		if ct := c.GetHeader("Content-Type"); ct != "" {
+			req.Header.Set("Content-Type", ct)
+		}
 
 		resp, err := client.Do(req)
 		if err != nil {

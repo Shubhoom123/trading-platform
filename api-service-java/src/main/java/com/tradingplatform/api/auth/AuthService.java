@@ -11,6 +11,7 @@ import com.tradingplatform.api.repository.UserRepository;
 import com.tradingplatform.api.security.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +23,16 @@ public class AuthService {
     private final AccountRepository accounts;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final long demoStartingBalanceTicks;
 
     public AuthService(UserRepository users, AccountRepository accounts,
-                       PasswordEncoder passwordEncoder, JwtService jwtService) {
+                       PasswordEncoder passwordEncoder, JwtService jwtService,
+                       @Value("${demo.starting-balance-ticks:100000000}") long demoStartingBalanceTicks) {
         this.users = users;
         this.accounts = accounts;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.demoStartingBalanceTicks = demoStartingBalanceTicks;
     }
 
     @Transactional
@@ -38,8 +42,10 @@ public class AuthService {
         }
         User user = users.save(
                 new User(request.email(), passwordEncoder.encode(request.password())));
-        // Every user gets an account; funding happens out of band for this scaffold.
-        accounts.save(new Account(user.getId(), 0L));
+        // Every user gets an account, seeded with a demo balance so the UI is
+        // usable immediately. A real system would fund via a separate deposit
+        // flow; override with demo.starting-balance-ticks=0 to disable.
+        accounts.save(new Account(user.getId(), demoStartingBalanceTicks));
         return tokensFor(user);
     }
 

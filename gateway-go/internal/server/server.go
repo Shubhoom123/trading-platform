@@ -56,7 +56,8 @@ func (s *Server) Router() *gin.Engine {
 	r := gin.New()
 
 	rl := middleware.NewRateLimiter(s.cfg.RateLimitPerSec, s.cfg.RateLimitBurst)
-	r.Use(gin.Recovery(), middleware.RequestLogger(s.log), rl.Middleware())
+	r.Use(gin.Recovery(), middleware.RequestLogger(s.log),
+		middleware.CORS(s.cfg.CORSAllowedOrigin), rl.Middleware())
 
 	r.GET("/healthz", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
 
@@ -67,12 +68,19 @@ func (s *Server) Router() *gin.Engine {
 	// upgrade), so it lives outside the bearer-only group.
 	r.GET("/ws", s.handleWS)
 
+	// Auth is public (no token yet) — proxied straight to the Java API so the
+	// browser only ever talks to this one origin.
+	r.POST("/api/auth/register", s.proxyToAPI(http.MethodPost, "/api/auth/register"))
+	r.POST("/api/auth/login", s.proxyToAPI(http.MethodPost, "/api/auth/login"))
+	r.POST("/api/auth/refresh", s.proxyToAPI(http.MethodPost, "/api/auth/refresh"))
+
 	api := r.Group("/api", middleware.JWTAuth(s.verifier))
 	{
 		api.GET("/book/:symbol", s.handleBookSnapshot)
 		api.GET("/quote/:symbol", s.handleQuote)
-		api.GET("/orders", s.proxyToAPI("/api/orders"))
-		api.GET("/account", s.proxyToAPI("/api/account"))
+		api.GET("/orders", s.proxyToAPI(http.MethodGet, "/api/orders"))
+		api.POST("/orders", s.proxyToAPI(http.MethodPost, "/api/orders"))
+		api.GET("/account", s.proxyToAPI(http.MethodGet, "/api/account"))
 	}
 
 	return r

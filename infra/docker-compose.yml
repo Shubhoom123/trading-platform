@@ -169,5 +169,18 @@ services:
     depends_on:
       - prometheus
 
+  # React trading terminal (static SPA served by nginx). Opt-in so it doesn't
+  # slow the default `up`/e2e: bring it up with `docker compose --profile ui up`.
+  # The browser reaches the gateway directly at localhost:8090 (CORS-enabled).
+  frontend:
+    build:
+      context: ../frontend-web
+      dockerfile: Dockerfile
+    profiles: ["ui"]
+    ports:
+      - "3001:80"
+    depends_on:
+      - gateway
+
 volumes:
   pgdata:

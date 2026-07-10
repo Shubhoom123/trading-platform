@@ -7,8 +7,10 @@ problem actually calls for:
   price-time priority, the way real venues (NASDAQ, LMAX) are built.
 - **Java 21 / Spring Boot API** — accounts, auth (JWT), order validation,
   persistence; publishes orders to Kafka and consumes fills. *(Phase 2–4)*
-- **Go gateway** — WebSocket fan-out of live fills, REST reads, rate limiting;
-  consumes fills from Kafka. *(Phase 3–4)*
+- **Go gateway** — WebSocket fan-out of live fills, REST reads, rate limiting,
+  the single client front door; consumes fills from Kafka. *(Phase 3–4)*
+- **React + TypeScript frontend** — a trading terminal (order book, order entry,
+  live fills) talking to the gateway. See [`frontend-web/`](frontend-web/README.md).
 - **Kafka** (Redpanda locally) between services, **Postgres** as the system of
   record, **Redis** for hot book reads, **Prometheus + Grafana** for
   observability — all wired, with Dockerfiles, a full compose stack, and k8s
@@ -120,6 +122,21 @@ the same stack live in [`infra/k8s/`](infra/k8s/README.md) (k3d/minikube).
 | Matching engine | `:9101/metrics` | prometheus-cpp (orders/fills counters, match-latency histogram) |
 | API | `:8080/actuator/prometheus` | Micrometer (orders published, fills consumed) |
 | Gateway | `:8090/metrics` | client_golang (active WS, fills broadcast, cache hits/misses) |
+
+## Web frontend
+
+A React + TypeScript (Vite) trading terminal in [`frontend-web/`](frontend-web/README.md):
+register/login, live order book, order placement, order history, and a live
+fills feed — all talking to the Go gateway as the single backend (the gateway
+proxies auth/orders to the Java API and serves book/quote/WebSocket itself).
+
+```sh
+# with the stack up (compose or host), run the dev server:
+cd frontend-web && npm install && npm run dev      # http://localhost:5173
+
+# or serve it from the compose stack (opt-in profile):
+docker compose -f infra/docker-compose.yml --profile ui up --build -d   # http://localhost:3001
+```
 
 ## Testing
 

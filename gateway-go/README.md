@@ -28,10 +28,16 @@ loadtest/            k6 WebSocket load test
 | GET | `/healthz` | none | liveness |
 | GET | `/metrics` | none | Prometheus metrics (client_golang) |
 | GET | `/ws?symbol=X&token=JWT` | access token | live fill stream |
+| POST | `/api/auth/{register,login,refresh}` | none | proxied to the Java API |
 | GET | `/api/book/:symbol?depth=N` | Bearer | order book snapshot (Redis cache → engine on miss) |
 | GET | `/api/quote/:symbol` | Bearer | best bid/ask, served from the same cache |
-| GET | `/api/orders` | Bearer | proxied to the Java API |
-| GET | `/api/account` | Bearer | proxied to the Java API |
+| POST | `/api/orders` | Bearer | place an order — proxied to the Java API |
+| GET | `/api/orders` | Bearer | order history — proxied to the Java API |
+| GET | `/api/account` | Bearer | account balance — proxied to the Java API |
+
+The gateway is the **single front door** for browser clients (CORS-enabled): it
+serves book/quote/WebSocket itself and proxies auth/order/account to the Java API,
+so the frontend only ever talks to one origin.
 
 ## Design notes
 

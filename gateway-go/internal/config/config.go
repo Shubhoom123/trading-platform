@@ -25,6 +25,8 @@ type Config struct {
 	// Redis: read-through cache for book/quote reads (Phase 5). Empty = disabled.
 	RedisAddr    string
 	BookCacheTTL time.Duration
+	// CORS: origin allowed to call the API from a browser ("*" for any).
+	CORSAllowedOrigin string
 	// Per-client request rate limit (token bucket).
 	RateLimitPerSec float64
 	RateLimitBurst  int
@@ -47,8 +49,9 @@ func Load() (Config, error) {
 		KafkaBrokers:    splitCSV(getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:19092")),
 		FillsTopic:      getenv("KAFKA_FILLS_TOPIC", "fills"),
 		KafkaGroupID:    getenv("KAFKA_GROUP_ID", "gateway-fills"),
-		RedisAddr:       os.Getenv("REDIS_ADDR"), // empty disables caching
-		BookCacheTTL:    getenvDuration("BOOK_CACHE_TTL", 750*time.Millisecond),
+		RedisAddr:         os.Getenv("REDIS_ADDR"), // empty disables caching
+		BookCacheTTL:      getenvDuration("BOOK_CACHE_TTL", 750*time.Millisecond),
+		CORSAllowedOrigin: getenv("CORS_ALLOWED_ORIGIN", "*"),
 		RateLimitPerSec: getenvFloat("RATE_LIMIT_PER_SEC", 20),
 		RateLimitBurst:  getenvInt("RATE_LIMIT_BURST", 40),
 		WriteTimeout:    getenvDuration("WS_WRITE_TIMEOUT", 5*time.Second),

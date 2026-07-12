@@ -61,8 +61,8 @@ export function ScenarioPanel({ symbol }: { symbol: string }) {
         <>
           <LineChart
             series={[
-              { values: res.base.curve.map((p) => p.pnl), color: "#6b7280", label: "Base P&L" },
-              { values: res.shocked.curve.map((p) => p.pnl), color: shockPct < 0 ? "#ff5566" : "#5fed83", label: `Shocked ${shockPct}%` },
+              { values: res.base.curve.map((p) => p.pnl), color: "#7c828e", label: "Base P&L" },
+              { values: res.shocked.curve.map((p) => p.pnl), color: shockPct < 0 ? "#ef6a6a" : "#34d399", label: `Shocked ${shockPct}%` },
             ]}
             xLabels={[res.base.curve[0]?.date ?? "", res.base.curve.at(-1)?.date ?? ""]}
             format={money}

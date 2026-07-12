@@ -100,8 +100,8 @@ export function ModelsView({ symbol }: { symbol: string }) {
             </div>
             <LineChart
               series={[
-                { values: res.test.strategyEquity, color: "#5fed83", label: `Signal (${res.signal.testReturnPct}%)` },
-                { values: res.test.buyHoldEquity, color: "#6b7280", label: `Buy & hold (${res.signal.buyHoldReturnPct}%)` },
+                { values: res.test.strategyEquity, color: "#34d399", label: `Signal (${res.signal.testReturnPct}%)` },
+                { values: res.test.buyHoldEquity, color: "#7c828e", label: `Buy & hold (${res.signal.buyHoldReturnPct}%)` },
               ]}
               xLabels={[res.test.dates[0] ?? "", res.test.dates.at(-1) ?? ""]}
               format={(v) => `${((v - 1) * 100).toFixed(0)}%`}

@@ -49,7 +49,7 @@ export function SimulationView({ symbol }: { symbol: string }) {
               </span>
             </div>
             <LineChart
-              series={[{ values: closes, color: "#0fbf3f", label: `${symbol} close`, fill: true }]}
+              series={[{ values: closes, color: "#34d399", label: `${symbol} close`, fill: true }]}
               xLabels={[first, last]}
               height={280}
             />

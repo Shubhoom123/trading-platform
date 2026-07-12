@@ -58,7 +58,7 @@ export function BacktestPanel({ symbol }: { symbol: string }) {
       {res && s && (
         <>
           <LineChart
-            series={[{ values: res.equity.map((p) => p.value), color: "#5fed83", label: "Strategy equity", fill: true }]}
+            series={[{ values: res.equity.map((p) => p.value), color: "#34d399", label: "Strategy equity", fill: true }]}
             xLabels={[res.equity[0]?.date ?? "", res.equity.at(-1)?.date ?? ""]}
             format={money}
           />

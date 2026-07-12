@@ -10,7 +10,8 @@ COPY . .
 # in by default; override with --build-arg for other deployments.
 ARG VITE_API_BASE=http://localhost:8090
 ARG VITE_WS_BASE=ws://localhost:8090
-ENV VITE_API_BASE=$VITE_API_BASE VITE_WS_BASE=$VITE_WS_BASE
+ARG VITE_SIM_BASE=http://localhost:8100
+ENV VITE_API_BASE=$VITE_API_BASE VITE_WS_BASE=$VITE_WS_BASE VITE_SIM_BASE=$VITE_SIM_BASE
 RUN npm run build
 
 FROM nginx:1.27-alpine

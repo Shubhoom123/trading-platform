@@ -169,6 +169,50 @@ services:
     depends_on:
       - prometheus
 
+  # ML-driven market agents — bots that trade on the analytics service's price
+  # predictions (plus market-maker + noise agents) so the live book trends with
+  # the model. Opt-in: `docker compose --profile ui --profile sim up`
+  # (needs sim-service from the 'ui' profile for predictions). Stdlib-only.
+  market-agents:
+    image: python:3.12-slim
+    profiles: ["sim"]
+    environment:
+      GATEWAY: "http://gateway:8090"
+      SIM_SERVICE: "http://sim-service:8100"
+      SYMBOL: "AAPL"
+      MODEL: "gradient_boosting"
+    volumes:
+      - ./sim:/sim:ro
+    command: ["python", "/sim/agents.py"]
+    restart: on-failure
+    depends_on:
+      - gateway
+
+  # Simple random-flow seeder (no ML) — a lighter alternative to market-agents.
+  # Opt-in: `docker compose --profile sim-basic up`.
+  market-sim:
+    image: python:3.12-slim
+    profiles: ["sim-basic"]
+    environment:
+      GATEWAY: "http://gateway:8090"
+      SYMBOL: "AAPL"
+    volumes:
+      - ./sim:/sim:ro
+    command: ["python", "/sim/market_sim.py"]
+    restart: on-failure
+    depends_on:
+      - gateway
+
+  # Python analytics service: real market data (Stooq) + impact models. Part of
+  # the user-facing "ui" profile alongside the frontend. Standalone — it fetches
+  # its own data and doesn't depend on the exchange.
+  sim-service:
+    build:
+      context: ../sim-service
+    profiles: ["ui"]
+    ports:
+      - "8100:8100"
+
   # React trading terminal (static SPA served by nginx). Opt-in so it doesn't
   # slow the default `up`/e2e: bring it up with `docker compose --profile ui up`.
   # The browser reaches the gateway directly at localhost:8090 (CORS-enabled).

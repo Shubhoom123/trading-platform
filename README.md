@@ -10,7 +10,12 @@ problem actually calls for:
 - **Go gateway** — WebSocket fan-out of live fills, REST reads, rate limiting,
   the single client front door; consumes fills from Kafka. *(Phase 3–4)*
 - **React + TypeScript frontend** — a trading terminal (order book, order entry,
-  live fills) talking to the gateway. See [`frontend-web/`](frontend-web/README.md).
+  live fills) plus a **Simulate** tab for real-data impact analysis. See
+  [`frontend-web/`](frontend-web/README.md).
+- **Python analytics + ML service** — real market data (Stooq), impact models
+  (backtest, market impact, position P&L, scenarios), and scikit-learn
+  price-direction models with rigorous out-of-sample validation.
+  See [`sim-service/`](sim-service/README.md).
 - **Kafka** (Redpanda locally) between services, **Postgres** as the system of
   record, **Redis** for hot book reads, **Prometheus + Grafana** for
   observability — all wired, with Dockerfiles, a full compose stack, and k8s
@@ -123,12 +128,48 @@ the same stack live in [`infra/k8s/`](infra/k8s/README.md) (k3d/minikube).
 | API | `:8080/actuator/prometheus` | Micrometer (orders published, fills consumed) |
 | Gateway | `:8090/metrics` | client_golang (active WS, fills broadcast, cache hits/misses) |
 
+## Simulation & impact (real market data)
+
+Beyond the live exchange, a Python analytics service ([`sim-service/`](sim-service/README.md))
+turns the project into a **market simulator driven by real data**. It pulls real
+price history (Stooq — free, no API key) and models four kinds of impact, surfaced
+in the frontend's **Simulate** tab:
+
+- **Strategy backtest** — a moving-average strategy's P&L over the real series
+  (return vs. buy-&-hold, Sharpe, max drawdown, win rate).
+- **Market impact** — slippage of a large order via the Almgren square-root law,
+  `ΔP/P ≈ 0.8·σ·√(Q/ADV)`, calibrated to the ticker's real volatility and ADV.
+- **Position P&L** — a held position marked to market across the real price path.
+- **Shock scenarios** — the same position under a one-off price shock.
+
+### ML price prediction (and ML-driven bots)
+
+The **Models** tab trains scikit-learn classifiers (logistic regression, random
+forest, gradient boosting) on a ticker's real history to predict the next
+session's direction — with **rigorous, honest validation**: features use only
+past data (no lookahead), the split is by time, and metrics are out-of-sample.
+
+Because markets are near-efficient, test accuracy sits *just around the ~50%
+baseline* even as train accuracy climbs — the UI surfaces that train-vs-test gap
+rather than hiding it. Claiming to "beat the market" would be the naïve tell;
+showing the honest number (and *why*) is the point.
+
+The **ML-driven agents** ([`infra/sim/agents.py`](infra/sim/agents.py)) then
+trade on those predictions: signal bots lean in the model's predicted direction,
+market-maker bots keep the book two-sided, and noise bots add chatter — so the
+live market trends with the model and the book stays populated.
+
+The analytics + ML pipelines are verified against a deterministic series
+(backtest, impact, scenario, and all three models train and predict with sane,
+honest numbers — no network needed).
+
 ## Web frontend
 
-A React + TypeScript (Vite) trading terminal in [`frontend-web/`](frontend-web/README.md):
-register/login, live order book, order placement, order history, and a live
-fills feed — all talking to the Go gateway as the single backend (the gateway
-proxies auth/orders to the Java API and serves book/quote/WebSocket itself).
+A React + TypeScript (Vite) app in [`frontend-web/`](frontend-web/README.md) with
+three tabs. **Trade**: register/login, live order book, order placement, order
+history, live fills feed — all through the Go gateway (single front door).
+**Simulate**: real price chart + the four impact models. **Models**: train an ML
+price-direction model and see its honest out-of-sample performance.
 
 ```sh
 # with the stack up (compose or host), run the dev server:
@@ -137,6 +178,21 @@ cd frontend-web && npm install && npm run dev      # http://localhost:5173
 # or serve it from the compose stack (opt-in profile):
 docker compose -f infra/docker-compose.yml --profile ui up --build -d   # http://localhost:3001
 ```
+
+A fresh exchange has an empty order book (no liquidity yet). To make the UI feel
+alive — a populated book, streaming fills, prices that trend with the ML signal —
+run the **ML-driven agents** (needs the analytics service up for predictions):
+
+```sh
+# host: sim-service must be reachable at :8100 (run it via the ui profile)
+GATEWAY=http://localhost:8090 SIM_SERVICE=http://localhost:8100 python3 infra/sim/agents.py
+
+# or fully in compose (agents + sim-service + frontend):
+docker compose -f infra/docker-compose.yml --profile ui --profile sim up --build -d
+```
+
+For a lighter, ML-free random seeder use `infra/sim/market_sim.py`
+(`--profile sim-basic`).
 
 ## Testing
 

@@ -16,6 +16,13 @@ export function OrderForm({
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Market BUYs aren't supported (no price reference to size the cash
+  // reservation), so keep the type consistent when switching sides.
+  const chooseSide = (next: Side) => {
+    setSide(next);
+    if (next === "BUY" && type === "MARKET") setType("LIMIT");
+  };
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
@@ -51,14 +58,14 @@ export function OrderForm({
         <button
           type="button"
           className={`seg-btn buy ${side === "BUY" ? "active" : ""}`}
-          onClick={() => setSide("BUY")}
+          onClick={() => chooseSide("BUY")}
         >
           Buy
         </button>
         <button
           type="button"
           className={`seg-btn sell ${side === "SELL" ? "active" : ""}`}
-          onClick={() => setSide("SELL")}
+          onClick={() => chooseSide("SELL")}
         >
           Sell
         </button>
@@ -68,7 +75,8 @@ export function OrderForm({
         Type
         <select value={type} onChange={(e) => setType(e.target.value as OrderType)}>
           <option value="LIMIT">Limit</option>
-          <option value="MARKET">Market</option>
+          {/* Market buys aren't supported by the engine's cash-reservation model. */}
+          {side === "SELL" && <option value="MARKET">Market</option>}
         </select>
       </label>
 

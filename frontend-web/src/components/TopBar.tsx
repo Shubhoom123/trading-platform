@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
+import type { Tab } from "../App";
 import { api } from "../api/client";
 import { formatTicks } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
 
 export function TopBar({
+  tab,
+  onTab,
   symbol,
   onSymbol,
-  version,
 }: {
+  tab: Tab;
+  onTab: (t: Tab) => void;
   symbol: string;
   onSymbol: (s: string) => void;
-  version: number;
 }) {
   const { email, logout } = useAuth();
   const [balance, setBalance] = useState<number | null>(null);
   const [draft, setDraft] = useState(symbol);
+
+  useEffect(() => setDraft(symbol), [symbol]);
 
   useEffect(() => {
     let active = true;
@@ -26,12 +31,23 @@ export function TopBar({
       active = false;
       window.clearInterval(id);
     };
-  }, [version]);
+  }, []);
 
   return (
     <header className="topbar">
       <div className="brand-row">
         <span className="brand">Trading Terminal</span>
+        <nav className="tabs">
+          <button className={`tab ${tab === "trade" ? "active" : ""}`} onClick={() => onTab("trade")}>
+            Trade
+          </button>
+          <button className={`tab ${tab === "simulate" ? "active" : ""}`} onClick={() => onTab("simulate")}>
+            Simulate
+          </button>
+          <button className={`tab ${tab === "models" ? "active" : ""}`} onClick={() => onTab("models")}>
+            Models
+          </button>
+        </nav>
         <form
           className="symbol-form"
           onSubmit={(e) => {
@@ -40,26 +56,24 @@ export function TopBar({
             if (s) onSymbol(s);
           }}
         >
-          <input
-            aria-label="symbol"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            list="symbols"
-          />
+          <input aria-label="symbol" value={draft} onChange={(e) => setDraft(e.target.value)} list="symbols" />
           <datalist id="symbols">
             <option value="AAPL" />
             <option value="MSFT" />
             <option value="GOOG" />
-            <option value="E2E" />
+            <option value="NVDA" />
+            <option value="TSLA" />
           </datalist>
           <button className="btn small" type="submit">Load</button>
         </form>
       </div>
 
       <div className="topbar-right">
-        <span className="balance">
-          Balance <strong>${balance != null ? formatTicks(balance) : "—"}</strong>
-        </span>
+        {tab === "trade" && (
+          <span className="balance">
+            Balance <strong>${balance != null ? formatTicks(balance) : "—"}</strong>
+          </span>
+        )}
         <span className="muted email">{email}</span>
         <button className="btn small ghost" onClick={logout}>Sign out</button>
       </div>
